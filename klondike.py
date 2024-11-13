@@ -21,6 +21,7 @@ class MenuBar(tk.Frame):
         self.bg = bg
 
 
+
 class HoverButton(tk.Button):
     def __init__(self, parent, movetype="Клик", alt=None, ttjustify="left",
                  ttbackground="#ffffe0", ttforeground="black", ttrelief="solid",
@@ -37,11 +38,19 @@ class HoverButton(tk.Button):
         self.parent = parent
         self.movetype = movetype
         self.on_button = False
+        self.tooltip_window = None  
+        self.ttjustify = ttjustify
+        self.ttbackground = ttbackground
+        self.ttforeground = ttforeground
+        self.ttrelief = ttrelief
+        self.ttborderwidth = ttborderwidth
+        self.ttfont = ttfont
+        self.ttlocationinvert = ttlocationinvert
+        self.ttheightinvert = ttheightinvert
         self.bind("<Enter>", self.on_enter)
         self.bind("<Leave>", self.on_leave)
         self.bind("<Button-1>", self.on_click)
         self.bind("<ButtonRelease-1>", self.on_release)
-
 
     def on_click(self, event):
         if self["state"] == "normal":
@@ -57,11 +66,13 @@ class HoverButton(tk.Button):
         self.on_button = True
         if self["state"] == "normal":
             self.config(background=self["activebackground"], highlightbackground="black", cursor="hand2")
+        self.show_tooltip(event)
 
     def on_leave(self, event):
         self.on_button = False
         self.config(cursor=self.default_cursor)
         self.reset()
+        self.hide_tooltip()
 
     def run_command(self):
         if self.command:
@@ -79,9 +90,31 @@ class HoverButton(tk.Button):
         self.command = command
         self.config(command=command)
 
+    def show_tooltip(self, event):
+        if not self.text:  
+            return
+
+        self.tooltip_window = tk.Toplevel(self)
+        self.tooltip_window.wm_overrideredirect(True)  
+        self.tooltip_window.wm_attributes("-topmost", True)  
+        tooltip_label = tk.Label(self.tooltip_window, text=self.text, justify=self.ttjustify,
+                                 background=self.ttbackground, foreground=self.ttforeground,
+                                 relief=self.ttrelief, borderwidth=self.ttborderwidth,
+                                 font=self.ttfont)
+        tooltip_label.pack(ipadx=5, ipady=2)
+        x = event.x_root + (10 if not self.ttlocationinvert else -10)
+        y = event.y_root + (20 if not self.ttheightinvert else -20)
+        self.tooltip_window.wm_geometry(f"+{x}+{y}")
+
+    def hide_tooltip(self):
+        if self.tooltip_window:
+            self.tooltip_window.destroy()
+            self.tooltip_window = None
+
+
 class Stopwatch(tk.Label):
     def __init__(self, parent, **kwargs):
-        tk.Label.__init__(self, parent, text="Время: 00:00", **kwargs)
+        tk.Label.__init__(self, parent, text=f"Время: 00:00", **kwargs)
         self.value = 0
         self.action_id = None
         self.freeze_label = True
@@ -121,7 +154,7 @@ class SolitareGameWindow(tk.Tk):
         self.minsize(1300, 800)
         solitaire_frame = SolitareGameFrame(self)
         solitaire_frame.pack(expand=True, fill="both")
-        self.iconbitmap(os.path.dirname(os.path.abspath(__file__)) + "/assets/icon.ico")
+        self.iconbitmap(os.path.join("assets", "icon.ico"))
 
 
 class SolitareGameFrame(tk.Frame):
@@ -155,15 +188,7 @@ class SolitareGameFrame(tk.Frame):
         self.game_started = False
         self.move_flag = False
         self.win = None
-
-        os.chdir(os.path.dirname(os.path.abspath(__file__)))
-        try:
-            self.load_settings()
-        except:
-            with open("assets/settings.json", "w", encoding="utf-8") as handle:
-                handle.write(str(DEFAULT_SETTINGS).replace("'", '"'))
-            self.load_settings()
-
+        self.load_settings()
         self.load_images()
         self.shuffle_cards()
         self.draw_card_slots()
@@ -250,8 +275,8 @@ class SolitareGameFrame(tk.Frame):
         self.headerless_settings_button = headerless_settings_button = HoverButton(self.canvas,
         movetype=self.movetype, alt="Настройки игры", ttheightinvert=True, ttbackground="#1c1c1b",
         ttforeground="white", ttfont=("Verdana", "10", "normal"),
-        bg=self.canvas["bg"], activebackground=self.generate_new_colour(self.canvas["bg"]),
-        highlightbackground="#0d4b34", clickedbackground=self.generate_new_colour(self.canvas["bg"]),
+        bg=self.canvas["bg"], activebackground=self.generate_new_color(self.canvas["bg"]),
+        highlightbackground="#0d4b34", clickedbackground=self.generate_new_color(self.canvas["bg"]),
         command=self.open_settings, relief="flat", image=self.convert_pictures("settings.png", main=False))
 
         if self.show_header:
@@ -266,13 +291,12 @@ class SolitareGameFrame(tk.Frame):
         self.stopwatch = stopwatch = Stopwatch(
             footer, fg="white", bg="#1c1a1a")
         if self.total_redeals != "unlimited":
-            self.redeal_label = tk.Label(footer, text="Осталось пересдач: " + str(
-                max(0, self.total_redeals + self.redeals_left - 1)), fg="white", bg="#1c1a1a")
+            self.redeal_label = tk.Label(footer, text=f"Осталось пересдач: {max(0, self.total_redeals + self.redeals_left - 1)}", fg="white", bg="#1c1a1a")
         else:
             self.redeal_label = tk.Label(
                 footer, text="", fg="white", bg="#1c1a1a")
         self.stock_label = tk.Label(
-            footer, text="Осталось карт: " + str(self.stock_left), fg="white", bg="#1c1a1a")
+            footer, text=f"Осталось карт:  {self.stock_left}", fg="white", bg="#1c1a1a")
 
         if self.show_footer:
             footer.grid(row=2, column=0, sticky="ew")
@@ -361,14 +385,12 @@ class SolitareGameFrame(tk.Frame):
                 self.footer.grid(row=2, column=0, sticky="ew")
         else:
             self.footer.grid_forget()
-        self.points_label["text"] = (
-            "Очки: " + str((self.cards_on_ace * self.point_increment) + self.starting_points))
+        self.points_label["text"] = (f"Очки:  {(self.cards_on_ace * self.point_increment) + self.starting_points}")
         self.points_label.pack(side="right", padx=6, pady=4)
         if self.show_stopwatch:
             self.stopwatch.pack(side="right", padx=6, pady=4)
         if self.total_redeals != "unlimited":
-            self.redeal_label.config(
-                text="Осталось пересдач: " + str(max(0, self.total_redeals + self.redeals_left - 1)))
+            self.redeal_label.config(text=f"Осталось пересдач:  {max(0, self.total_redeals + self.redeals_left - 1)}")
             if self.game_started:
                 self.redeal_label.pack(side="left", padx=6, pady=4)
         if self.game_started:
@@ -384,7 +406,7 @@ class SolitareGameFrame(tk.Frame):
             self.canvas.rowconfigure(1, weight=1)
             self.headerless_settings_button.config(bg=self.canvas["bg"])
             self.headerless_settings_button.default_background = self.canvas["bg"]
-            self.headerless_settings_button["activebackground"] = self.generate_new_colour(
+            self.headerless_settings_button["activebackground"] = self.generate_new_color(
                 self.canvas["bg"])
             self.canvas.update_idletasks()
             self.headerless_settings_button.grid(row=1, sticky="sw")
@@ -466,7 +488,7 @@ class SolitareGameFrame(tk.Frame):
         ret = False
         
                 
-    def generate_new_colour(self, color):
+    def generate_new_color(self, color):
         rgb = list(self.hex_to_rgb(color))
         if rgb[0] > 200:
             rgb[0] = round(((rgb[0])) * 1 / 2)
@@ -488,7 +510,7 @@ class SolitareGameFrame(tk.Frame):
         return tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
 
     def rgb_to_hex(self, red, green, blue):
-        return "#%02x%02x%02x" % (red, green, blue)
+        return f"#{red:02x}{green:02x}{blue:02x}"
 
     def load_images(self):
         suits = ["clubs", "diamonds", "spades", "hearts"]
@@ -497,7 +519,7 @@ class SolitareGameFrame(tk.Frame):
 
         for suit in suits:
             for rank in ranks:
-                name_of_image = os.path.join("assets/cards", f"{rank}_of_{suit}.png")
+                name_of_image = os.path.join("assets", "cards", f"{rank}_of_{suit}.png")
                 image = Image.open(name_of_image)
                 self.cards.append(f"{rank}_of_{suit}")
                 self.dict_of_cards[(f"{rank}_of_{suit}")] = (ImageTk.PhotoImage(image))
@@ -1119,12 +1141,10 @@ class SolitareGameFrame(tk.Frame):
                 self.cards_on_ace -= 1
                 for i in last_move[2]:
                     self.canvas.tag_raise(i)
-                self.points_label["text"] = (
-                    f"Очки: {(self.cards_on_ace * self.point_increment) + self.starting_points}")
+                self.points_label["text"] = (f"Очки: {(self.cards_on_ace * self.point_increment) + self.starting_points}")
             elif last_move[1] == 2:
                 self.cards_on_ace += 1
-                self.points_label["text"] = (
-                    f"Очки: {(self.cards_on_ace * self.point_increment) + self.starting_points}")
+                self.points_label["text"] = (f"Очки: {(self.cards_on_ace * self.point_increment) + self.starting_points}")
 
         elif "move_card_srv" in last_move:
             card_location = self.canvas.coords(last_move[3])
@@ -1140,12 +1160,10 @@ class SolitareGameFrame(tk.Frame):
 
             if last_move[2] == 1:
                 self.cards_on_ace -= 1
-                self.points_label["text"] = (
-                    f"Очки: {(self.cards_on_ace * self.point_increment) + self.starting_points}")
+                self.points_label["text"] = (f"Очки: {(self.cards_on_ace * self.point_increment) + self.starting_points}")
             elif last_move[2] == 2:
                 self.cards_on_ace += 1
-                self.points_label["text"] = (
-                    f"Очки: {(self.cards_on_ace * self.point_increment) + self.starting_points}")
+                self.points_label["text"] = (f"Очки: {(self.cards_on_ace * self.point_increment) + self.starting_points}")
         self.canvas.tag_raise("face_up")
         self.restart_game_button.config(state="normal")
         self.redo_last_move_button.config(state="normal")
@@ -1280,8 +1298,7 @@ class SolitareGameFrame(tk.Frame):
             self.history.append(history_to_add)
             self.redeals_left -= 1
             if self.total_redeals != "unlimited":
-                self.redeal_label.config(
-                    text=f"Осталось пересдач: {max(0, self.total_redeals + self.redeals_left - 1)}")
+                self.redeal_label.config(text=f"Осталось пересдач: {max(0, self.total_redeals + self.redeals_left - 1)}")
 
             for card in reversed(list(self.canvas.find_overlapping(*self.canvas.bbox("empty_cardstack_slotb")))):
                 if "empty_cardstack_slotb" in self.canvas.gettags(card):
@@ -1772,8 +1789,7 @@ class SolitareGameFrame(tk.Frame):
             
         if "empty_ace_slot" in str(tag_list):
             self.cards_on_ace -= 1
-            self.points_label["text"] = (
-                f"Очки: {(self.cards_on_ace * self.point_increment) + self.starting_points}")
+            self.points_label["text"] = (f"Очки: {(self.cards_on_ace * self.point_increment) + self.starting_points}")
             new_card_on_ace = 2
             check = self.generate_drawing_count(ace_slot=ace_slot)
             if self.movetype == "Перетаскивание":
@@ -1874,9 +1890,8 @@ class SolitareGameFrame(tk.Frame):
                 self.stopwatch.freeze(True)
             self.history = []
             self.cardsender_may_continue = False
-            after_game = messagebox.askquestion(title="Вы выиграли!",
-            message="Сыграем еще раз?", icon="question")
-            if after_game == "yes":
+            after_game = messagebox.askyesno(title="Вы выиграли!", message="Сыграем еще раз?", icon="question")
+            if after_game:
                 self.new_game()
             else:
                 self.destroy()
@@ -1905,8 +1920,7 @@ class SolitareGameFrame(tk.Frame):
             self.card_drawing_count = 0
         if ace_slot:
             self.cards_on_ace += 1
-            self.points_label["text"] = (
-                f"Очки: {(self.cards_on_ace * self.point_increment) + self.starting_points}")
+            self.points_label["text"] = (f"Очки: {(self.cards_on_ace * self.point_increment) + self.starting_points}")
             self.card_drawing_count = 0
             new_card_on_ace = 1
             self.canvas_item_hover_time += 300
@@ -1923,9 +1937,8 @@ class Combobox(tk.Frame):
         self.mouse_on_self = False
         self.box_opened = 0
         self.pack_propagate(0)
-        self.label_image = tk.PhotoImage(file=(os.path.dirname(os.path.abspath(__file__)) + "/assets/arrow.png"))
-        self.other_label_image = tk.PhotoImage(
-            file=(os.path.dirname(os.path.abspath(__file__)) + "/assets/arrow_up.png"))
+        self.label_image = tk.PhotoImage(file=os.path.join("assets", "arrow_down.png"))
+        self.other_label_image = tk.PhotoImage(file=os.path.join("assets", "arrow_up.png"))
         try:
             self.textvariable = entry_args["textvariable"]
         except:
@@ -1935,16 +1948,13 @@ class Combobox(tk.Frame):
             self.highlightthickness = entry_args["highlightthickness"]
         except:
             self.highlightthickness = 0
-        if "image" in label_args:
-            label_args.pop("image")
         if replace_entry_with_label:
             self.entry = entry = tk.Label(self, **entry_args)
         else:
             self.entry = entry = tk.Entry(self, **entry_args)
         entry.pack(side="left", expand=True, fill="both")
         self.entry.config(highlightthickness=self.highlightthickness)
-        self.label = label = tk.Label(
-            self, image=self.label_image, cursor="hand2", **label_args)
+        self.label = label = tk.Label(self, image=self.label_image, cursor="hand2", **label_args)
         label.pack(side="right", fill="both")
 
         try:
@@ -1956,10 +1966,8 @@ class Combobox(tk.Frame):
                     color = label_args["bg"]
                 except:
                     color = "white"
-            label.bind("<Enter>", lambda event,
-                       color=activecolor: self.label_hover(event, color))
-            label.bind("<Leave>", lambda event,
-                       color=color: self.label_hover(event, color))
+            label.bind("<Enter>", lambda event, color=activecolor: self.label_hover(event, color))
+            label.bind("<Leave>", lambda event, color=color: self.label_hover(event, color))
         except:
             pass
 
@@ -2012,9 +2020,9 @@ class Combobox(tk.Frame):
             height += height_increment
         listbox.pack(fill="both")
         listbox.config(width=0, height=0)
-        box.wm_geometry("%dx%d+%d+%d" % (width, height, loc_x, loc_y))
+        box.wm_geometry(f"{width}x{height}+{loc_x}+{loc_y}")
         listbox.update()
-        box.wm_geometry("%dx%d" % (width, listbox.winfo_height()))
+        box.wm_geometry(f"{width}x{listbox.winfo_height()}")
         listbox.bind("<<ListboxSelect>>", self.listbox_select)
         listbox.bind("<Motion>", self.on_listbox_enter)
         self.label.config(image=self.other_label_image)
@@ -2063,7 +2071,7 @@ class Combobox(tk.Frame):
         self.event_generate("<<ComboboxSelect>>")
 
     def on_listbox_enter(self, event):
-        index = event.widget.index("@%s,%s" % (event.x, event.y))
+        index = event.widget.index(f"@{event.x},{event.y}")
         event.widget.selection_clear(0, "end")
         event.widget.select_set(index)
 
@@ -2081,33 +2089,15 @@ class Settings(tk.Toplevel):
         self.columnconfigure(3, weight=1)
         self.updated_settings = False
         self.wm_protocol("WM_DELETE_WINDOW", self.delete_window)
-        try:
-            self.settings = settings = json.load(open(os.path.dirname(
-                os.path.abspath(__file__)) + "/assets/settings.json", encoding="utf-8"))
-            movetype = settings["movetype"]
-            gamemode = settings["gamemode"]
-            canvas_hover_time = 300
-            wait_before_send = 100
-            show_footer = settings["show_footer"] == "True"
-            show_header = settings["show_header"] == "True"
-            card_back = settings["card_back"]
-            canvas_color = settings["canvas_color"]
-        except:
-            with open((os.path.dirname(os.path.abspath(__file__)) + "/assets/settings.json"), "w", encoding="utf-8") as handle:
-                handle.write(str(DEFAULT_SETTINGS).replace("'", '"'))
-            self.settings = settings = json.load(open(os.path.dirname(
-                os.path.abspath(__file__)) + "/assets/settings.json", encoding="utf-8"))
-            settings = json.load(open(os.path.dirname(
-                os.path.abspath(__file__)) + "/assets/settings.json", encoding="utf-8"))
-            movetype = settings["movetype"]
-            gamemode = settings["gamemode"]
-            canvas_hover_time = 300
-            wait_before_send = 100
-            show_footer = settings["show_footer"] == "True"
-            show_header = settings["show_header"] == "True"
-            card_back = settings["card_back"]
-            canvas_color = settings["canvas_color"]
-
+        self.settings = settings = json.load(open(os.path.join("assets", "settings.json"), encoding="utf-8"))
+        movetype = settings["movetype"]
+        gamemode = settings["gamemode"]
+        canvas_hover_time = 300
+        wait_before_send = 100
+        show_footer = settings["show_footer"] == "True"
+        show_header = settings["show_header"] == "True"
+        card_back = settings["card_back"]
+        canvas_color = settings["canvas_color"]
         self.movetype_chooser_var = tk.StringVar(value=movetype)
         self.gametype_chooser_var = tk.StringVar(value=gamemode)
         self.card_back_var = tk.StringVar(value=card_back)
@@ -2119,8 +2109,7 @@ class Settings(tk.Toplevel):
         self.create_widgets()
         self.config_widgets()
         self.grid_all()
-        self.iconbitmap(os.path.dirname(
-                os.path.abspath(__file__)) + "/assets/icon.ico")
+        self.iconbitmap(os.path.join("assets", "icon.ico"))
 
 
     def create_widgets(self):
@@ -2153,7 +2142,7 @@ class Settings(tk.Toplevel):
         self.color_entry_label = tk.Label(self,
                                           text="Цвет фона:", bg="#b0acac")
         self.color_entry = tk.Entry(self, textvariable=self.canvas_color_var, state='disabled', relief="flat", highlightbackground="black", highlightthickness=1,
-                                    bg=self.canvas_color_var.get(), disabledbackground=self.canvas_color_var.get(), disabledforeground=self.generate_new_colour(self.canvas_color_var.get()), cursor="arrow")
+                                    bg=self.canvas_color_var.get(), disabledbackground=self.canvas_color_var.get(), disabledforeground=self.generate_new_color(self.canvas_color_var.get()), cursor="arrow")
 
         self.header_button = tk.Checkbutton(self,
                                             text="Верхнее меню", variable=self.header_button_var, highlightthickness=0, anchor="w", bg="#b0acac", activebackground="#706c6c")
@@ -2165,10 +2154,8 @@ class Settings(tk.Toplevel):
                                       command=self.reset_all, bg="#b0acac", activebackground="#706c6c")
 
     def config_widgets(self):
-        self.movetype_chooser.bind(
-            "<<ComboboxSelect>>", self.movetype_chooser_select)
-        self.gametype_chooser.bind(
-            "<<ComboboxSelect>>", self.gametype_chooser_select)
+        self.movetype_chooser.bind("<<ComboboxSelect>>", self.movetype_chooser_select)
+        self.gametype_chooser.bind("<<ComboboxSelect>>", self.gametype_chooser_select)
         self.dark_back_button.bind("<Enter>", self.enter_button)
         self.light_back_button.bind("<Enter>", self.enter_button)
         self.header_button.bind("<Enter>", self.enter_button)
@@ -2246,14 +2233,13 @@ class Settings(tk.Toplevel):
         self.reset_button.grid(row=18, column=2, padx=8, pady=7, sticky="ew")
 
     def open_colorpicker(self, event):
-        color = askcolor(parent=self, color=self.canvas_color_var.get(
-        ), title="Выберите цвет фона")[1]
+        color = askcolor(parent=self, color=self.canvas_color_var.get(), title="Выберите цвет фона")[1]
         if color:
             self.canvas_color_var.set(color)
             self.color_entry.config(bg=color, disabledbackground=color,
-                                    disabledforeground=self.generate_new_colour(color))
+                                    disabledforeground=self.generate_new_color(color))
 
-    def generate_new_colour(self, color):
+    def generate_new_color(self, color):
         rgb = list(self.hex_to_rgb(color))
         rgb[0] = max(1, min(255, 240 - rgb[0]))
         rgb[1] = max(1, min(255, 240 - rgb[1]))
@@ -2266,7 +2252,7 @@ class Settings(tk.Toplevel):
         return tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
 
     def rgb_to_hex(self, red, green, blue):
-        return '#%02x%02x%02x' % (red, green, blue)
+        return f"#{red:02x}{green:02x}{blue:02x}"
 
     def reset_all(self):
         self.focus()
@@ -2279,18 +2265,6 @@ class Settings(tk.Toplevel):
         self.card_back_var.set("dark_back")
         self.last_gamemode = self.gametype_chooser_var.get()
 
-    def red_bg(self, widget):
-        widget.config(bg="red")
-        widget.bind("<Key>", lambda event,
-                    widget=widget: self.normal_bg(event, widget))
-        widget.bind("<Button-1>", lambda event,
-                    widget=widget: self.normal_bg(event, widget))
-
-    def normal_bg(self, event, widget):
-        widget.config(bg="#cccaca")
-        widget.unbind("<Key>")
-        widget.unbind("<Button-1>")
-
     def save(self):
         settings = {}
         settings["movetype"] = self.movetype_chooser_var.get()
@@ -2300,7 +2274,7 @@ class Settings(tk.Toplevel):
         settings["card_back"] = str(self.card_back_var.get())
         settings["canvas_color"] = str(self.canvas_color_var.get())
         self.updated_settings = True
-        with open((os.path.dirname(os.path.abspath(__file__)) + "/assets/settings.json"), "w", encoding="utf-8") as handle:
+        with open(os.path.join("assets", "settings.json"), "w", encoding="utf-8") as handle:
             handle.write(str(settings).replace("'", '"'))
         self.event_generate("<<SettingsClose>>")
         self.destroy()
@@ -2330,7 +2304,7 @@ class Settings(tk.Toplevel):
                 save = messagebox.askyesnocancel(
                     "Сохранение настроек.", "Вы изменили настройки. Хотите сохранить их?", parent=self, default="yes", icon="warning")
                 if save:
-                    with open((os.path.dirname(os.path.abspath(__file__)) + "/assets/settings.json"), "w", encoding="utf-8") as handle:
+                    with open(os.path.join("assets", "settings.json"), "w", encoding="utf-8") as handle:
                         handle.write(str(settings).replace("'", '"'))
                 elif save is None:
                     return
