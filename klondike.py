@@ -1175,6 +1175,12 @@ class SolitareGameFrame(tk.Frame):
 
 
     def check_move_validity(self, current_card, last_card, ace_slot):
+        card_values = {
+            "j": "11",
+            "q": "12",
+            "k": "13",
+            "a": "1"
+        }        
         if ace_slot:
             if "clubs" in current_card and "clubs" not in last_card:
                 return False
@@ -1202,24 +1208,8 @@ class SolitareGameFrame(tk.Frame):
             else:
                 current_card = current_card[0]
 
-            if last_card == "j":
-                last_card = "11"
-            elif last_card == "q":
-                last_card = "12"
-            elif last_card == "k":
-                last_card = "13"
-            elif last_card == "a":
-                last_card = "1"
-
-            if current_card == "j":
-                current_card = "11"
-            elif current_card == "q":
-                current_card = "12"
-            elif current_card == "k":
-                current_card = "13"
-            elif current_card == "a":
-                current_card = "1"
-
+            last_card = card_values.get(last_card, last_card)  
+            current_card = card_values.get(current_card, current_card)
             last_card = int(last_card)
             current_card = int(current_card)
 
@@ -1263,8 +1253,7 @@ class SolitareGameFrame(tk.Frame):
         history_to_add = [tag_a, "stack_click_move"]
         self.history.append(history_to_add)
         self.canvas.move(current_item, 115, 0)
-        self.canvas.itemconfig(current_item, image=self.dict_of_cards[tag_a],
-                               tag=(tag_a, "face_up"))
+        self.canvas.itemconfig(current_item, image=self.dict_of_cards[tag_a], tag=(tag_a, "face_up"))
         self.canvas.tag_unbind(tag_a, "<Button-1>")
         if self.movetype == "Клик":
             self.canvas.tag_bind(tag_a, "<Button-1>", self.card_onclick)
@@ -1332,9 +1321,7 @@ class SolitareGameFrame(tk.Frame):
         self.canvas.delete("rect")
         if self.move_flag:
             new_xpos, new_ypos = event.x, event.y
-            self.canvas.move("moveable", new_xpos - self.mouse_xpos,
-                             new_ypos - self.mouse_ypos)
-
+            self.canvas.move("moveable", new_xpos - self.mouse_xpos, new_ypos - self.mouse_ypos)
             self.mouse_xpos = new_xpos
             self.mouse_ypos = new_ypos
             self.highlight_available_cards()
