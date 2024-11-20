@@ -772,8 +772,8 @@ class SolitareGameFrame(tk.Frame):
             card_stack[3] = (int(card_stack[3])) + 350
             card_stack = tuple(card_stack)
             card_stack = list(self.canvas.find_overlapping(*card_stack))
-            for pairr in self.card_stack_list:
-                card_tag = self.canvas.gettags(pairr)
+            for pair in self.card_stack_list:
+                card_tag = self.canvas.gettags(pair)
                 if ("ace_slot" in str(card_tag)) or ("cardstack" in str(card_tag)):
                     to_be_card_stack_list = card_stack[-1]
                     card_stack = []
@@ -1303,7 +1303,7 @@ class SolitareGameFrame(tk.Frame):
             self.stock_left -= 1
             for i in (self.canvas.find_overlapping(*self.canvas.bbox("empty_cardstack_slot"))):
                 self.stock_left += 1
-            self.stock_label.config(text=f"Осталось пересдач: {self.stock_left}")
+            self.stock_label.config(text=f"Осталось карт: {self.stock_left}")
             self.undo_last_move_button.config(state="normal")
             self.restart_game_button.config(state="normal")
             self.redo_last_move_button.config(state="disabled")
@@ -2102,8 +2102,6 @@ class Settings(tk.Toplevel):
     def create_widgets(self):
         style = ttk.Style()
         style.configure("TScale", background="#b0acac")
-        self.intro_label = tk.Label(self, text="Настройки игры", font=(
-            "Calibri", 10, "normal"), bg="#b0acac", fg="grey")
         self.movetype_chooser = Combobox(self, self.movetype_chooser_options, {"height": 22, "width": 200, "bg": "#cccaca", "highlightbackground": "black", "highlightthickness": 1},
                                          {"textvariable": self.movetype_chooser_var, "anchor": "w",
                                              "padx": 2, "background": "#cccaca", "cursor": "arrow"},
@@ -2181,8 +2179,6 @@ class Settings(tk.Toplevel):
         event.widget.config(highlightbackground="black")
 
     def grid_all(self):
-        self.intro_label.grid(row=0, column=0, columnspan=4,
-                              padx=8, pady=2, sticky="ew")
         tk.Label(self, text="Игра:", font=("Calibri", 11, "bold"), bg="#b0acac", fg="blue").grid(
             row=1, column=0, columnspan=2, padx=8, pady=2, sticky="w")
         self.movetype_label.grid(
@@ -2306,6 +2302,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
