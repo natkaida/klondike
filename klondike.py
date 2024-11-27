@@ -490,18 +490,15 @@ class SolitareGameFrame(tk.Frame):
                 
     def generate_new_color(self, color):
         rgb = list(self.hex_to_rgb(color))
-        if rgb[0] > 200:
-            rgb[0] = round(((rgb[0])) * 1 / 2)
-        else:
-            rgb[0] = round(min(255, 10 + rgb[0] * 2))
-        if rgb[1] > 130:
-            rgb[1] = round((rgb[1]) * 1 / 2)
-        else:
-            rgb[1] = round(min(255, 10 + rgb[1] * 2))
-        if rgb[2] > 130:
-            rgb[2] = round((rgb[2]) * 1 / 2)
-        else:
-            rgb[2] = round(min(255, 10 + rgb[2] * 2))
+        thresholds = [200, 130, 130]          
+        rgb = [
+            round(
+                value * 0.5 if value > threshold 
+                else min(255, 10 + value * 2)
+            )
+            for value, threshold in zip(rgb, thresholds)
+        ]
+        
         return self.rgb_to_hex(*rgb)
 
     def hex_to_rgb(self, color):
@@ -599,8 +596,7 @@ class SolitareGameFrame(tk.Frame):
 
         self.empty_slot = empty_slot = self.convert_pictures("empty_slot.png")
         for item in positions_of_main_rects:
-            self.canvas.create_image(
-                *item, image=empty_slot, tag=("empty_slot"), anchor=tk.NW)
+            self.canvas.create_image(*item, image=empty_slot, tag=("empty_slot"), anchor=tk.NW)
 
         self.canvas.create_image(525, 50, image=self.convert_pictures("ace_of_spades_slot.png"),
                                  tag=("spades", "empty_ace_slot"), anchor=tk.NW)
@@ -700,7 +696,7 @@ class SolitareGameFrame(tk.Frame):
 
         try:
             self.stopwatch.stop()
-            self.stopwatch.config(text=f"Time: 00:00")
+            self.stopwatch.config(text=f"Время: 00:00")
         except:
             pass
 
@@ -708,8 +704,7 @@ class SolitareGameFrame(tk.Frame):
         self.undo_last_move_button.disable()
         self.redo_last_move_button.disable()
         if self.total_redeals != "unlimited":
-            self.redeal_label.config(
-                text=f"Осталось пересдач: {max(0, self.total_redeals + self.redeals_left - 1)}")
+            self.redeal_label.config(text=f"Осталось пересдач: {max(0, self.total_redeals + self.redeals_left - 1)}")
         self.points_label.config(text=f"Очки: {self.starting_points}")
         self.stock_label.config(text=f"Осталось карт:  {self.stock_left}")
         if self.total_redeals != "unlimited":
@@ -951,8 +946,7 @@ class SolitareGameFrame(tk.Frame):
                     self.canvas.tag_bind("rect", "<Button-1>", self.click_on_hint_rect)
                 else:
                     self.canvas.tag_bind("rect", "<Button-1>", self.click_on_hint_rect)
-
-
+         
     def send_cards_up(self, *args):
         if self.move_flag:
             return
@@ -1366,8 +1360,7 @@ class SolitareGameFrame(tk.Frame):
                 current_image_bbox = self.canvas.bbox(current_image)
                 returnval = self.generate_returnval(current_image)
                 if returnval:
-                    self.create_rectangle(
-                        *current_image_bbox, fill="blue", alpha=.3, tag="available_card_rect")
+                    self.create_rectangle(*current_image_bbox, fill="blue", alpha=.3, tag="available_card_rect")
                     for card in self.card_stack_list:
                         if "empty_slot" not in self.canvas.gettags(card):
                             self.canvas.tag_raise(card)
@@ -1595,7 +1588,7 @@ class SolitareGameFrame(tk.Frame):
             if "empty_ace_slot" not in str(current_image_tags) and "empty_slot" not in str(current_image_tags):
                 csl = list(self.canvas.bbox(tag_a))
                 csl[1] = (int(csl[1])) + 135
-                csl[3] = (int(csl[3]))+20
+                csl[3] = (int(csl[3])) + 20
                 csl = tuple(csl)
                 csl = list(self.canvas.find_overlapping(*csl))
                 for i in csl:
@@ -1610,8 +1603,7 @@ class SolitareGameFrame(tk.Frame):
                 try:
                     for item in self.card_stack_list:
                         self.canvas.tag_raise(item)
-                    item = self.canvas.find_overlapping(
-                        *self.canvas.bbox(self.canvas.find_above(self.last_active_card)))
+                    item = self.canvas.find_overlapping(*self.canvas.bbox(self.canvas.find_above(self.last_active_card)))
                     overlapping = True
                 except:
                     pass
