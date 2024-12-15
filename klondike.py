@@ -20,8 +20,6 @@ class MenuBar(tk.Frame):
         tk.Frame.__init__(self, parent, height=height, bg=bg, **kwargs)
         self.bg = bg
 
-
-
 class HoverButton(tk.Button):
     def __init__(self, parent, movetype="Клик", alt=None, ttjustify="left",
                  ttbackground="#ffffe0", ttforeground="black", ttrelief="solid",
@@ -201,7 +199,7 @@ class SolitareGameFrame(tk.Frame):
         self.movetype = settings["movetype"]
         self.gamemode = settings["gamemode"]
         self.canvas_hover_time = 300
-        self.wait_before_send = 100
+        self.wait_before_send = 150
         self.show_footer = settings["show_footer"] == "True"
         self.show_header = settings["show_header"] == "True"
         self.canvas.config(bg=settings["canvas_color"])
@@ -1823,8 +1821,7 @@ class SolitareGameFrame(tk.Frame):
                 card_values = self.canvas.find_withtag(card)
                 if "face_down" in self.canvas.gettags(card_values):
                     card_tags = str(self.canvas.gettags(card_values))
-                    tag_a = card_tags.replace("('", "").replace(
-                        "', 'face_down')", "").replace("', 'face_up')", "")
+                    tag_a = card_tags.replace("('", "").replace("', 'face_down')", "").replace("', 'face_up')", "")
                     self.canvas.itemconfig(card_values, image=self.dict_of_cards[tag_a],
                                            tag=(tag_a, "face_up"))
                     if self.movetype == "Клик":
@@ -2072,7 +2069,7 @@ class Settings(tk.Toplevel):
         movetype = settings["movetype"]
         gamemode = settings["gamemode"]
         canvas_hover_time = 300
-        wait_before_send = 100
+        wait_before_send = 150
         show_footer = settings["show_footer"] == "True"
         show_header = settings["show_header"] == "True"
         card_back = settings["card_back"]
